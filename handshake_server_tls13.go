@@ -16,6 +16,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha512"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -24,7 +25,6 @@ import (
 	"math/big"
 	"slices"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
@@ -79,7 +79,7 @@ var (
 
 func init() {
 	certificate := x509.Certificate{SerialNumber: &big.Int{}}
-	certificateMldsa65 := x509.Certificate{SerialNumber: &big.Int{}, DNSNames: []string{strings.Repeat("0", 3309)}}
+	certificateMldsa65 := x509.Certificate{SerialNumber: &big.Int{}, ExtraExtensions: []pkix.Extension{{Id: []int{0, 0}, Value: bytes.Repeat([]byte{0}, 3309)}}}
 	_, ed25519Priv, _ = ed25519.GenerateKey(rand.Reader)
 	signedCert, _ = x509.CreateCertificate(rand.Reader, &certificate, &certificate, ed25519.PublicKey(ed25519Priv[32:]), ed25519Priv)
 	signedCertMldsa65, _ = x509.CreateCertificate(rand.Reader, &certificateMldsa65, &certificateMldsa65, ed25519.PublicKey(ed25519Priv[32:]), ed25519Priv)
@@ -150,7 +150,7 @@ func (hs *serverHandshakeStateTLS13) handshake() error {
 			h.Write(hs.clientHello.original)
 			h.Write(hs.hello.original)
 			key, _ := mldsa65.Scheme().UnmarshalBinaryPrivateKey(c.config.Mldsa65Key)
-			mldsa65.SignTo(key.(*mldsa65.PrivateKey), h.Sum(nil), nil, false, cert[139:]) // fixed location
+			mldsa65.SignTo(key.(*mldsa65.PrivateKey), h.Sum(nil), nil, false, cert[126:]) // fixed location
 		}
 
 		hs.cert = &Certificate{
